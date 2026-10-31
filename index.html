@@ -53,7 +53,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <span class="sync-status">🟢 실시간 동기화 중 (1초)</span>
+            <span class="sync-status">🟢 실시간 동기화 중 (15초)</span>
             <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
             <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
         </div>
@@ -316,7 +316,7 @@
             renderBossTable();
 
             // ⏱️ 3초마다 자동으로 서버 동기화 (현재 보고 있는 탭 유지 기능 포함)
-            setInterval(loadFromServer, 1000);
+            setInterval(loadFromServer, 15000);
         });
     </script>
 </body>
