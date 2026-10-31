@@ -53,7 +53,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <span class="sync-status">🟢 실시간 동기화 중 (15초)</span>
+            <span class="sync-status">🟢 실시간 동기화 중 (3초)</span>
             <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
             <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
         </div>
@@ -102,7 +102,7 @@
     <script>
         window.addEventListener('DOMContentLoaded', function() {
             // 👇 본인의 구글 앱 스크립트 웹 앱 URL을 여기에 넣어주세요!
-            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzeAAcn7r_7u7G7Pbd_hfKaI8gIsvoGqq3NxeSU2FioyY5jHQN6CvvpKA2phQSrOzQI/exec"; 
+            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbz.../exec"; 
 
             var defaultData = {
                 timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
@@ -138,12 +138,10 @@
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
                         if(data && data.timeSlots && data.bosses) {
-                            // 현재 내가 보고 있는 activeTab 은 유지하면서 데이터만 갱신
                             var currentActive = appData.activeTab;
                             
                             if(JSON.stringify(appData) !== JSON.stringify(data)) {
                                 appData = data;
-                                // 서버에 가져온 데이터에 현재 보고 있던 탭이 여전히 존재하면 유지, 없으면 첫 번째 탭으로
                                 if(appData.timeSlots.indexOf(currentActive) !== -1) {
                                     appData.activeTab = currentActive;
                                 } else {
@@ -206,9 +204,11 @@
                             <span class="badge ${bClass}">${bText}</span>
                         `;
                     } else {
+                        // 확률 보스에 '처치 완료' 버튼 추가
                         statusControls = `
                             <button type="button" class="btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '젠')">젠</button>
                             <button type="button" class="btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '멍')">멍</button>
+                            <button type="button" class="btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '처치')">처치 완료</button>
                             <span class="badge ${bClass}">${bText}</span>
                         `;
                     }
@@ -310,13 +310,11 @@
                 saveAndSync();
             };
 
-            // 최초 실행 시 로드 및 렌더링
             loadFromServer();
             renderTabs();
             renderBossTable();
 
-            // ⏱️ 3초마다 자동으로 서버 동기화 (현재 보고 있는 탭 유지 기능 포함)
-            setInterval(loadFromServer, 15000);
+            setInterval(loadFromServer, 3000);
         });
     </script>
 </body>
