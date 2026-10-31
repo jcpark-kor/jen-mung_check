@@ -55,7 +55,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <button type="button" id="btnSettings" class="btn-gray">⚙️ 연결 상태</button>
+            <button type="button" id="btnSync" class="btn-blue">🔄 최신 상태 동기화</button>
             <button type="button" id="btnResetTab" class="btn-red">🔄 현재 시간대 초기화</button>
         </div>
     </header>
@@ -100,27 +100,9 @@
         </div>
     </main>
 
-    <!-- 설정 모달 (확인용) -->
-    <div id="settingsModal" class="modal hidden">
-        <div class="modal-content">
-            <h3 style="font-size:1.1rem; font-weight:bold;">⚙️ 스프레드시트 연동 상태</h3>
-            <p style="font-size:0.85rem; color:#9ca3af;">코드로 자동 연동되어 있어 별도 입력이 필요 없습니다.</p>
-            <div class="input-group">
-                <label>현재 적용된 Web App URL</label>
-                <input type="text" id="gasUrlInput" readonly style="background:#111827; color:#9ca3af;">
-            </div>
-            <div style="display:flex; justify-content:flex-end;">
-                <button type="button" id="btnCloseModal" class="btn-blue">확인</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         window.addEventListener('DOMContentLoaded', function() {
-            // 👇 [중요] 여기에 본인의 구글 앱 스크립트 웹 앱 URL을 통째로 넣어주세요!
-            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxJrQ3vElbDS2mGK68N8ZoyYjd-tblYQzmITuP0kwSzGS8N0DKgiE54k6QZhH7obTYj/exec"; 
-
-            var gasUrl = DEFAULT_GAS_URL;
+            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzeAAcn7r_7u7G7Pbd_hfKaI8gIsvoGqq3NxeSU2FioyY5jHQN6CvvpKA2phQSrOzQI/exec"; 
 
             var defaultData = {
                 timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
@@ -134,20 +116,40 @@
             };
 
             var appData = defaultData;
-            try {
-                var saved = localStorage.getItem('bossAppData');
-                if (saved) {
-                    var parsed = JSON.parse(saved);
-                    if (parsed && parsed.timeSlots && parsed.bosses) {
-                        appData = parsed;
-                    }
-                }
-            } catch(e) {}
 
-            function saveAndRender() {
+            function saveAndSync() {
                 try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
                 renderTabs();
                 renderBossTable();
+                
+                // 변경 사항이 생길 때마다 스프레드시트에 통째로 업로드
+                if(DEFAULT_GAS_URL) {
+                    fetch(DEFAULT_GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(appData)
+                    }).catch(function(err){ console.error(err); });
+                }
+            }
+
+            function loadFromServer(isManual) {
+                if(!DEFAULT_GAS_URL) return;
+                fetch(DEFAULT_GAS_URL)
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if(data && data.timeSlots && data.bosses) {
+                            appData = data;
+                            renderTabs();
+                            renderBossTable();
+                            if(isManual) alert('최신 상태를 동기화했습니다!');
+                        } else if(isManual) {
+                            alert('저장된 데이터가 없습니다.');
+                        }
+                    })
+                    .catch(function(err) {
+                        if(isManual) alert('동기화 실패: 네트워크 오류');
+                    });
             }
 
             function renderTabs() {
@@ -162,7 +164,8 @@
                     btn.onclick = function() {
                         appData.activeTab = slot;
                         if(!appData.bosses[slot]) appData.bosses[slot] = [];
-                        saveAndRender();
+                        renderTabs();
+                        renderBossTable();
                     };
                     container.appendChild(btn);
                 });
@@ -229,8 +232,7 @@
                     var d = new Date();
                     boss.status = status;
                     boss.time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
-                    saveAndRender();
-                    sendToSheet(appData.activeTab, boss.name, status, boss.time);
+                    saveAndSync();
                 }
             };
 
@@ -241,66 +243,22 @@
                 var temp = list[index];
                 list[index] = list[targetIndex];
                 list[targetIndex] = temp;
-                saveAndRender();
+                saveAndSync();
             };
 
             window.deleteBoss = function(id) {
                 appData.bosses[appData.activeTab] = (appData.bosses[appData.activeTab] || []).filter(function(b) { return b.id !== id; });
-                saveAndRender();
+                saveAndSync();
             };
 
-            function sendToSheet(sheetName, bossName, status, time) {
-                if(!gasUrl) return;
-                try {
-                    fetch(gasUrl, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sheetName: sheetName, bossName: bossName, status: status, time: time })
-                    }).catch(function(){});
-                } catch(e){}
-            }
-
-            // 스프레드시트에서 최신 데이터 불러오기 (GET)
-            function loadFromSheet() {
-                if(!gasUrl) return;
-                fetch(gasUrl)
-                    .then(function(response) { return response.json(); })
-                    .then(function(rows) {
-                        if(!rows || rows.length <= 1) return;
-                        for(var i = 1; i < rows.length; i++) {
-                            var r = rows[i];
-                            var sName = r[0];
-                            var bName = r[1];
-                            var status = r[2];
-                            var time = r[3];
-                            
-                            if(appData.bosses[sName]) {
-                                var target = appData.bosses[sName].find(function(b) { return b.name === bName; });
-                                if(target) {
-                                    target.status = status;
-                                    target.time = time;
-                                }
-                            }
-                        }
-                        renderBossTable();
-                    })
-                    .catch(function(err) { console.error('Load Error:', err); });
-            }
-
-            document.getElementById('btnSettings').onclick = function() {
-                document.getElementById('gasUrlInput').value = gasUrl;
-                document.getElementById('settingsModal').classList.remove('hidden');
-            };
-            document.getElementById('btnCloseModal').onclick = function() {
-                document.getElementById('settingsModal').classList.add('hidden');
+            document.getElementById('btnSync').onclick = function() {
+                loadFromServer(true);
             };
 
             document.getElementById('btnResetTab').onclick = function() {
                 if(confirm('[' + appData.activeTab + ' 타임]의 모든 보스를 초기화하시겠습니까?')) {
                     (appData.bosses[appData.activeTab] || []).forEach(function(b) { b.status = '대기'; b.time = '-'; });
-                    saveAndRender();
-                    sendToSheet(appData.activeTab, 'ALL', 'RESET', 'NOW');
+                    saveAndSync();
                 }
             };
 
@@ -311,9 +269,10 @@
                     appData.timeSlots.sort();
                     appData.activeTab = slot;
                     if(!appData.bosses[slot]) appData.bosses[slot] = [];
-                    saveAndRender();
+                    saveAndSync();
                 }
             };
+
             document.getElementById('btnDeleteSlot').onclick = function() {
                 if(appData.timeSlots.length <= 1) {
                     alert('최소 1개의 시간대는 유지되어야 합니다.');
@@ -324,7 +283,7 @@
                     appData.timeSlots = appData.timeSlots.filter(function(s) { return s !== target; });
                     delete appData.bosses[target];
                     appData.activeTab = appData.timeSlots[0];
-                    saveAndRender();
+                    saveAndSync();
                 }
             };
 
@@ -343,14 +302,14 @@
                     time: '-'
                 });
                 nameEl.value = '';
-                saveAndRender();
+                saveAndPercent(); // 오타 방지용 함수 호출 수정
+                saveAndSync();
             };
 
-            // 초기 실행 및 스프레드시트 데이터 자동 불러오기
-            saveAndRender();
-            if(gasUrl) {
-                loadFromSheet();
-            }
+            // 처음 접속할 때 서버에서 데이터 불러오기 시도
+            loadFromServer(false);
+            renderTabs();
+            renderBossTable();
         });
     </script>
 </body>
