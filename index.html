@@ -19,10 +19,10 @@
             <h1 class="text-xl font-bold tracking-wider">MMORPG 보스 젠/멍 타이머</h1>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="openSettings()" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition">
+            <button id="btnSettings" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition">
                 <span>⚙️ 설정 & 가이드</span>
             </button>
-            <button onclick="resetCurrentTab()" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition">
+            <button id="btnResetTab" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition">
                 🔄 현재 시간대 초기화
             </button>
         </div>
@@ -34,14 +34,14 @@
         <!-- 시간대 탭 네비게이션 -->
         <div class="flex items-center justify-between border-b border-gray-700 pb-2 overflow-x-auto">
             <div id="timeTabs" class="flex space-x-4 min-w-max">
-                <!-- 동적으로 탭 생성 -->
+                <!-- 동적 탭 -->
             </div>
-            <button onclick="addTimeSlot()" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition ml-4">
+            <button id="btnAddSlot" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition ml-4">
                 + 시간대 추가
             </button>
         </div>
 
-        <!-- 보스 관리 및 추가 입력 영역 -->
+        <!-- 보스 추가 입력 영역 -->
         <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-3 items-end">
             <div class="flex-1 min-w-[150px]">
                 <label class="block text-xs text-gray-400 mb-1">보스 이름</label>
@@ -54,11 +54,7 @@
                     <option value="random">확률 보스</option>
                 </select>
             </div>
-            <div class="w-32">
-                <label class="block text-xs text-gray-400 mb-1">출현 주기(시간)</label>
-                <input type="number" id="newBossInterval" value="4" min="1" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-            </div>
-            <button onclick="addBoss()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
+            <button id="btnAddBoss" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
                 보스 등록
             </button>
         </div>
@@ -77,7 +73,7 @@
                         </tr>
                     </thead>
                     <tbody id="bossTableBody" class="divide-y divide-gray-700 text-sm">
-                        <!-- 동적으로 보스 목록 생성 -->
+                        <!-- 동적 데이터 -->
                     </tbody>
                 </table>
             </div>
@@ -87,24 +83,4 @@
     <!-- 설정 모달 -->
     <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
         <div class="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-gray-700 pb-3">
-                <h3 class="text-lg font-bold">⚙️ 설정 및 구글 스프레드시트 연동</h3>
-                <button onclick="closeSettings()" class="text-gray-400 hover:text-white text-xl">&times;</button>
-            </div>
-            
-            <div class="space-y-3">
-                <label class="block text-sm font-medium text-gray-300">구글 앱 스크립트 웹 앱 URL</label>
-                <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                <p class="text-xs text-gray-400">입력하신 주소로 젠/멍 체크 내역이 각 시간대별 시트에 자동 저장됩니다.</p>
-            </div>
-
-            <div class="bg-gray-900 p-4 rounded-xl border border-gray-700 space-y-2 text-xs text-gray-300">
-                <p class="font-bold text-yellow-400">💡 구글 앱 스크립트(Apps Script) 가이드</p>
-                <p>1. 구글 스프레드시트 ➔ [확장 프로그램] ➔ [Apps Script] 이동</p>
-                <p>2. 아래 코드를 붙여넣고 배포(웹 앱, 모든 사용자 허용) 후 URL 복사</p>
-            </div>
-
-            <div class="flex justify-end space-x-2 pt-2">
-                <button onclick="closeSettings()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition">취소</button>
-                <button onclick="saveSettings()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition">저장하기</button>
-            </div>
+            <div class="flex justify-between items
