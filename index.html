@@ -19,10 +19,10 @@
             <h1 class="text-xl font-bold tracking-wider">MMORPG 보스 젠/멍 타이머</h1>
         </div>
         <div class="flex items-center space-x-3">
-            <button id="btnSettings" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition">
+            <button id="btnSettings" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition cursor-pointer">
                 <span>⚙️ 설정 & 가이드</span>
             </button>
-            <button id="btnResetTab" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition">
+            <button id="btnResetTab" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
                 🔄 현재 시간대 초기화
             </button>
         </div>
@@ -37,4 +37,29 @@
                 <!-- 동적 탭 -->
             </div>
             <div class="flex items-center space-x-2">
-                <button id="btnAddSlot" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition">
+                <button id="btnAddSlot" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition cursor-pointer">
+                    + 시간대 추가
+                </button>
+                <button id="btnDeleteSlot" class="bg-gray-700 hover:bg-red-600 text-xs px-3 py-1.5 rounded-md font-semibold transition text-gray-300 hover:text-white cursor-pointer">
+                    🗑️ 현재 시간대 삭제
+                </button>
+            </div>
+        </div>
+
+        <!-- 보스 추가 입력 영역 -->
+        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs text-gray-400 mb-1">보스 이름</label>
+                <input type="text" id="newBossName" placeholder="예: 바포메트" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="w-32">
+                <label class="block text-xs text-gray-400 mb-1">유형</label>
+                <select id="newBossType" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="fixed">고정 보스</option>
+                    <option value="random">확률 보스</option>
+                </select>
+            </div>
+            <button id="btnAddBoss" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer">
+                보스 등록
+            </button>
+        </div>
