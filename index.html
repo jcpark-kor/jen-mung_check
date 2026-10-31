@@ -9,7 +9,7 @@
         body { background-color: #111827; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
         header { background-color: #1f2937; border-bottom: 1px solid #374151; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
         .header-title { display: flex; align-items: center; gap: 8px; font-size: 1.2rem; font-weight: bold; }
-        .header-btns { display: flex; gap: 8px; }
+        .header-btns { display: flex; gap: 8px; align-items: center; }
         
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
         button:hover { opacity: 0.85; }
@@ -45,6 +45,7 @@
         .badge-done { background-color: #1e40af; color: #bfdbfe; }
 
         .action-btns { display: flex; gap: 4px; align-items: center; }
+        .sync-status { font-size: 0.75rem; color: #10b981; display: flex; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
@@ -52,8 +53,9 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <button type="button" id="btnSync" class="btn-blue">🔄 최신 상태 동기화</button>
-            <button type="button" id="btnResetTab" class="btn-red">🔄 현재 시간대 초기화</button>
+            <span class="sync-status">🟢 실시간 동기화 중 (3초)</span>
+            <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
+            <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
         </div>
     </header>
 
@@ -130,23 +132,21 @@
                 }
             }
 
-            function loadFromServer(isManual) {
+            function loadFromServer() {
                 if(!DEFAULT_GAS_URL) return;
                 fetch(DEFAULT_GAS_URL)
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
                         if(data && data.timeSlots && data.bosses) {
-                            appData = data;
-                            renderTabs();
-                            renderBossTable();
-                            if(isManual) alert('최신 상태를 동기화했습니다!');
-                        } else if(isManual) {
-                            alert('저장된 데이터가 없습니다.');
+                            // 현재 내 로컬 데이터와 서버 데이터가 다를 때만 갱신하여 깜빡임 방지
+                            if(JSON.stringify(appData) !== JSON.stringify(data)) {
+                                appData = data;
+                                renderTabs();
+                                renderBossTable();
+                            }
                         }
                     })
-                    .catch(function(err) {
-                        if(isManual) alert('동기화 실패: 네트워크 오류');
-                    });
+                    .catch(function(err){});
             }
 
             function renderTabs() {
@@ -248,8 +248,9 @@
                 saveAndSync();
             };
 
+            // 수동 동기화 버튼 (알림창 없이 조용히 동기화 수행)
             document.getElementById('btnSync').onclick = function() {
-                loadFromServer(true);
+                loadFromServer();
             };
 
             document.getElementById('btnResetTab').onclick = function() {
@@ -284,7 +285,6 @@
                 }
             };
 
-            // 보스 추가 이벤트 정상 작동하도록 수정 완료
             document.getElementById('btnAddBoss').onclick = function() {
                 var nameEl = document.getElementById('newBossName');
                 var typeEl = document.getElementById('newBossType');
@@ -303,9 +303,13 @@
                 saveAndSync();
             };
 
-            loadFromServer(false);
+            // 최초 실행 시 로드 및 렌더링
+            loadFromServer();
             renderTabs();
             renderBossTable();
+
+            // ⏱️ 3초마다 자동으로 서버(스프레드시트) 최신 상태 동기화 실행
+            setInterval(loadFromServer, 3000);
         });
     </script>
 </body>
