@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMORPG 보스 젠/멍 타이머</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+
+    <!-- 상단 헤더 -->
+    <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl">⚔️</span>
+            <h1 class="text-xl font-bold tracking-wider">MMORPG 보스 젠/멍 타이머</h1>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="btnSettings" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition">
+                <span>⚙️ 설정 & 가이드</span>
+            </button>
+            <button id="btnResetTab" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition">
+                🔄 현재 시간대 초기화
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 컨테이너 -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col space-y-6">
+
+        <!-- 시간대 탭 네비게이션 -->
+        <div class="flex items-center justify-between border-b border-gray-700 pb-2 overflow-x-auto">
+            <div id="timeTabs" class="flex space-x-4 min-w-max">
+                <!-- 동적 탭 -->
+            </div>
+            <button id="btnAddSlot" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition ml-4">
+                + 시간대 추가
+            </button>
+        </div>
+
+        <!-- 보스 추가 입력 영역 -->
+        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-3 items-end">
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-xs text-gray-400 mb-1">보스 이름</label>
+                <input type="text" id="newBossName" placeholder="예: 바포메트" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+            </div>
+            <div class="w-32">
+                <label class="block text-xs text-gray-400 mb-1">유형</label>
+                <select id="newBossType" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                    <option value="fixed">고정 보스</option>
+                    <option value="random">확률 보스</option>
+                </select>
+            </div>
+            <button id="btnAddBoss" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                보스 등록
+            </button>
+        </div>
+
+        <!-- 보스 리스트 테이블 -->
+        <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden shadow-lg">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-750 border-b border-gray-700 text-gray-400 text-xs uppercase tracking-wider">
+                            <th class="p-4">유형</th>
+                            <th class="p-4">보스 이름</th>
+                            <th class="p-4">상태 (젠/멍)</th>
+                            <th class="p-4">마지막 변경 시간</th>
+                            <th class="p-4">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bossTableBody" class="divide-y divide-gray-700 text-sm">
+                        <!-- 동적 데이터 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                <h3 class="text-lg font-bold">⚙️ 설정 및 구글 스프레드시트 연동</h3>
+                <button id="btnCloseModalX" class="text-gray-400 hover:text-white text-xl">&times;</button>
+            </div>
+            
+            <div class="space-y-3">
+                <label class="block text-sm font-medium text-gray-300">구글 앱 스크립트 웹 앱 URL</label>
+                <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <p class="text-xs text-gray-400">URL을 저장해 두면 젠/멍 클릭 시 스프레드시트에 자동 기록됩니다.</p>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button id="btnCloseModalBtn" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg text-sm transition">취소</button>
+                <button id="btnSaveSettings" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-semibold transition">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트 로직 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 기본 데이터 초기화
+            let defaultData = {
+                timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+                activeTab: "00:00",
+                bosses: {
+                    "00:00": [
+                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "대기", time: "-" },
+                        { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-" }
+                    ]
+                }
+            };
+
+            let appData;
+            try {
+                appData = JSON.parse(localStorage.getItem('bossAppData')) || defaultData;
+            } catch(e) {
+                appData = defaultData;
+            }
+
+            let gasUrl = localStorage.getItem('gasUrl') || '';
+
+            // 엘리먼트 참조
+            const timeTabsEl = document.getElementById('timeTabs');
+            const bossTableBodyEl = document.getElementById('bossTableBody');
+            const settingsModalEl = document.getElementById('settingsModal');
+            const gasUrlInputEl = document.getElementById('gasUrlInput');
+
+            function saveAndRender() {
+                localStorage.setItem('bossAppData', JSON.stringify(appData));
+                renderTabs();
+                renderBossTable();
+            }
+
+            function renderTabs() {
+                timeTabsEl.innerHTML = '';
+                appData.timeSlots.forEach(slot => {
+                    const btn = document.createElement('button');
+                    btn.className = `px-4 py-2 text-sm font-medium transition ${slot === appData.activeTab ? 'tab-active' : 'text-gray-400 hover:text-white'}`;
+                    btn.innerText = `${slot} 타임`;
+                    btn.addEventListener('click', () => {
+                        appData.activeTab = slot;
+                        if (!appData.bosses[slot]) appData.bosses[slot] = [];
+                        saveAndRender();
+                    });
+                    timeTabsEl.appendChild(btn);
+                });
+            }
+
+            function renderBossTable() {
+                bossTableBodyEl.innerHTML = '';
+                const currentBosses = appData.bosses[appData.activeTab] || [];
+
+                if (currentBosses.length === 0) {
+                    bossTableBodyEl.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-gray-500">등록된 보스가 없습니다. 보스를 추가해주세요.</td></tr>`;
+                    return;
+                }
+
+                currentBosses.forEach(boss => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-750 transition';
+
+                    let statusBadge = '';
+                    if (boss.status === '젠') statusBadge = '<span class="bg-green-900 text-green-300 px-2.5 py-1 rounded-full text-xs font-bold">젠 (출현)</span>';
+                    else if (boss.status === '멍') statusBadge = '<span class="bg-red-900 text-red-300 px-2.5 py-1 rounded-full text-xs font-bold">멍 (미출현)</span>';
+                    else statusBadge = '<span class="bg-gray-700 text-gray-300 px-2.5 py-1 rounded-full text-xs font-bold">대기</span>';
+
+                    tr.innerHTML = `
+                        <td class="p-4"><span class="text-xs px-2 py-1 rounded ${boss.type === 'fixed' ? 'bg-blue-900 text-blue-300' : 'bg-purple-900 text-purple-300'}">${boss.type === 'fixed' ? '고정' : '확률'}</span></td>
+                        <td class="p-4 font-semibold">${boss.name}</td>
+                        <td class="p-4 space-x-2">
+                            <button data-id="${boss.id}" data-status="젠" class="btn-status bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold transition">젠</button>
+                            <button data-id="${boss.id}" data-status="멍" class="btn-status bg-red-700 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold transition">멍</button>
+                            ${statusBadge}
+                        </td>
+                        <td class="p-4 text-gray-400 text-xs">${boss.time}</td>
+                        <td class="p-4">
+                            <button data-id="${boss.id}" class="btn-delete text-gray-500 hover:text-red-400 text-xs">삭제</button>
+                        </td>
+                    `;
+                    bossTableBodyEl.appendChild(tr);
+                });
+
+                // 젠/멍 버튼 클릭 이벤트 연결
+                document.querySelectorAll('.btn-status').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = Number(this.getAttribute('data-id'));
+                        const status = this.getAttribute('data-status');
+                        updateStatus(id, status);
+                    });
+                });
+
+                // 삭제 버튼 클릭 이벤트 연결
+                document.querySelectorAll('.btn-delete').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = Number(this.getAttribute('data-id'));
+                        deleteBoss(id);
+                    });
+                });
+            }
+
+            function updateStatus(id, status) {
+                const bosses = appData.bosses[appData.activeTab];
+                const boss = bosses.find(b => b.id === id);
+                if (boss) {
+                    const now = new Date();
+                    boss.status = status;
+                    boss.time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                    saveAndRender();
+                    sendToGoogleSheet(appData.activeTab, boss.name, status, boss.time);
+                }
+            }
+
+            function deleteBoss(id) {
+                appData.bosses[appData.activeTab] = appData.bosses[appData.activeTab].filter(b => b.id !== id);
+                saveAndRender();
+            }
+
+            function sendToGoogleSheet(sheetName, bossName, status, time) {
+                if (!gasUrl) return;
+                fetch(gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sheetName, bossName, status, time })
+                }).catch(err => console.error('Sheet Sync Error:', err));
+            }
+
+            // 이벤트 리스너 바인딩
+            document.getElementById('btnSettings').addEventListener('click', () => {
+                gasUrlInputEl.value = gasUrl;
+                settingsModalEl.classList.remove('hidden');
+            });
+
+            const closeModal = () => settingsModalEl.classList.add('hidden');
+            document.getElementById('btnCloseModalX').addEventListener('click', closeModal);
+            document.getElementById('btnCloseModalBtn').addEventListener('click', closeModal);
+
+            document.getElementById('btnSaveSettings').addEventListener('click', () => {
+                gasUrl = gasUrlInputEl.value.trim();
+                localStorage.setItem('gasUrl', gasUrl);
+                alert('구글 앱 스크립트 URL이 저장되었습니다.');
+                closeModal();
+            });
+
+            document.getElementById('btnAddBoss').addEventListener('click', () => {
+                const nameInput = document.getElementById('newBossName');
+                const typeInput = document.getElementById('newBossType');
+                const name = nameInput.value.trim();
+                if (!name) { alert('보스 이름을 입력해주세요.'); return; }
+
+                if (!appData.bosses[appData.activeTab]) appData.bosses[appData.activeTab] = [];
+                appData.bosses[appData.activeTab].push({
+                    id: Date.now(),
+                    name: name,
+                    type: typeInput.value,
+                    status: '대기',
+                    time: '-'
+                });
+                nameInput.value = '';
+                saveAndRender();
+            });
+
+            document.getElementById('btnResetTab').addEventListener('click', () => {
+                if (confirm(`[${appData.activeTab} 타임]의 모든 보스 상태를 초기화하시겠습니까?`)) {
+                    if (appData.bosses[appData.activeTab]) {
+                        appData.bosses[appData.activeTab].forEach(b => {
+                            b.status = '대기';
+                            b.time = '-';
+                        });
+                    }
+                    saveAndRender();
+                    sendToGoogleSheet(appData.activeTab, 'ALL', 'RESET', 'NOW');
+                }
+            });
+
+            document.getElementById('btnAddSlot').addEventListener('click', () => {
+                const newSlot = prompt('추가할 시간대를 입력하세요 (예: 02:00):');
+                if (newSlot && !appData.timeSlots.includes(newSlot)) {
+                    appData.timeSlots.push(newSlot);
+                    appData.timeSlots.sort();
+                    appData.activeTab = newSlot;
+                    if (!appData.bosses[newSlot]) appData.bosses[newSlot] = [];
+                    saveAndRender();
+                }
+            });
+
+            // 초기 실행
+            saveAndRender();
+        });
+    </script>
+</body>
+</html>
