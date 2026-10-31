@@ -12,11 +12,12 @@
         .header-btns { display: flex; gap: 8px; }
         
         button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
+        button:hover { opacity: 0.85; }
         .btn-gray { background-color: #374151; color: #fff; }
         .btn-red { background-color: #dc2626; color: #fff; }
         .btn-blue { background-color: #2563eb; color: #fff; }
         .btn-green { background-color: #16a34a; color: #fff; }
+        .btn-icon { padding: 4px 8px; font-size: 0.75rem; background-color: #374151; color: #fff; }
         
         main { flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
         
@@ -41,10 +42,13 @@
         .badge-zen { background-color: #14532d; color: #86efac; }
         .badge-mong { background-color: #7f1d1d; color: #fca5a5; }
         .badge-wait { background-color: #374151; color: #d1d5db; }
+        .badge-done { background-color: #1e40af; color: #bfdbfe; }
 
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .modal.hidden { display: none; }
+        .modal.hidden { display: none !important; }
         .modal-content { background: #1f2937; border: 1px solid #374151; border-radius: 10px; width: 90%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        
+        .action-btns { display: flex; gap: 4px; align-items: center; }
     </style>
 </head>
 <body>
@@ -87,9 +91,9 @@
                     <tr>
                         <th>유형</th>
                         <th>보스 이름</th>
-                        <th>상태 변경</th>
+                        <th>상태</th>
                         <th>시간</th>
-                        <th>삭제</th>
+                        <th>순서 / 삭제</th>
                     </tr>
                 </thead>
                 <tbody id="bossTableBody"></tbody>
@@ -105,7 +109,7 @@
                 <label>Apps Script Web App URL</label>
                 <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
             </div>
-            <div style="display:flex; justify-end; gap:8px;">
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
                 <button type="button" id="btnCloseModal" class="btn-gray">닫기</button>
                 <button type="button" id="btnSaveSettings" class="btn-blue">저장</button>
             </div>
@@ -113,31 +117,47 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            let defaultData = {
+        window.addEventListener('DOMContentLoaded', function() {
+            var defaultData = {
                 timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
                 activeTab: "00:00",
                 bosses: {
                     "00:00": [
-                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "대기", time: "-" },
+                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "확인", time: "-" },
                         { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-" }
                     ]
                 }
             };
 
-            let appData = defaultData;
+            var appData = defaultData;
             try {
-                let saved = localStorage.getItem('bossAppData');
-                if(saved) appData = JSON.parse(saved);
-            } catch(e) {}
+                var saved = localStorage.getItem('bossAppData');
+                if (saved) {
+                    var parsed = JSON.parse(saved);
+                    if (parsed && parsed.timeSlots && parsed.bosses) {
+                        appData = parsed;
+                    }
+                }
+            } catch(e) {
+                appData = defaultData;
+            }
 
-            let gasUrl = localStorage.getItem('gasUrl') || '';
+            var gasUrl = '';
+            try { gasUrl = localStorage.getItem('gasUrl') || ''; } catch(e){}
+
+            function saveAndRender() {
+                try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
+                renderTabs();
+                renderBossTable();
+            }
 
             function renderTabs() {
-                const container = document.getElementById('timeTabs');
+                var container = document.getElementById('timeTabs');
+                if(!container) return;
                 container.innerHTML = '';
-                appData.timeSlots.forEach(slot => {
-                    const btn = document.createElement('button');
+                appData.timeSlots.forEach(function(slot) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
                     btn.className = 'tab-btn ' + (slot === appData.activeTab ? 'active' : '');
                     btn.innerText = slot + ' 타임';
                     btn.onclick = function() {
@@ -150,54 +170,65 @@
             }
 
             function renderBossTable() {
-                const tbody = document.getElementById('bossTableBody');
+                var tbody = document.getElementById('bossTableBody');
+                if(!tbody) return;
                 tbody.innerHTML = '';
-                const list = appData.bosses[appData.activeTab] || [];
+                var list = appData.bosses[appData.activeTab] || [];
 
                 if(list.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#6b7280; padding:20px;">등록된 보스가 없습니다.</td></tr>';
                     return;
                 }
 
-                list.forEach(boss => {
-                    const tr = document.createElement('tr');
+                list.forEach(function(boss, index) {
+                    var tr = document.createElement('tr');
                     
-                    let bClass = 'badge-wait', bText = '대기';
+                    var bClass = 'badge-wait', bText = '대기';
                     if(boss.status === '젠') { bClass = 'badge-zen'; bText = '젠 (출현)'; }
                     else if(boss.status === '멍') { bClass = 'badge-mong'; bText = '멍 (미출현)'; }
+                    else if(boss.status === '처치') { bClass = 'badge-done'; bText = '처치 완료'; }
 
-                    const typeBadge = boss.type === 'fixed' 
+                    var typeBadge = boss.type === 'fixed' 
                         ? '<span class="badge badge-fixed">고정</span>' 
                         : '<span class="badge badge-random">확률</span>';
+
+                    // 고정 보스일 경우 젠/멍 버튼 안 뜨고 '처치/확인' 토글만 가능
+                    var statusControls = '';
+                    if (boss.type === 'fixed') {
+                        statusControls = `
+                            <button type="button" class="btn-blue" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '처치')">처치 완료</button>
+                            <span class="badge ${bClass}">${bText}</span>
+                        `;
+                    } else {
+                        statusControls = `
+                            <button type="button" class="btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '젠')">젠</button>
+                            <button type="button" class="btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '멍')">멍</button>
+                            <span class="badge ${bClass}">${bText}</span>
+                        `;
+                    }
 
                     tr.innerHTML = `
                         <td>${typeBadge}</td>
                         <td style="font-weight:bold;">${boss.name}</td>
-                        <td>
-                            <button type="button" class="btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="updateStatus(${boss.id}, '젠')">젠</button>
-                            <button type="button" class="btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="updateStatus(${boss.id}, '멍')">멍</button>
-                            <span class="badge ${bClass}">${bText}</span>
-                        </td>
+                        <td>${statusControls}</td>
                         <td style="color:#9ca3af; font-size:0.75rem;">${boss.time}</td>
                         <td>
-                            <button type="button" class="btn-gray" style="padding:2px 6px; font-size:0.7rem;" onclick="deleteBoss(${boss.id})">삭제</button>
+                            <div class="action-btns">
+                                <button type="button" class="btn-icon" onclick="window.moveBoss(${index}, -1)">⬆️</button>
+                                <button type="button" class="btn-icon" onclick="window.moveBoss(${index}, 1)">⬇️</button>
+                                <button type="button" class="btn-gray" style="padding:2px 6px; font-size:0.7rem;" onclick="window.deleteBoss(${boss.id})">삭제</button>
+                            </div>
                         </td>
                     `;
                     tbody.appendChild(tr);
                 });
             }
 
-            function saveAndRender() {
-                try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
-                renderTabs();
-                renderBossTable();
-            }
-
             window.updateStatus = function(id, status) {
-                const list = appData.bosses[appData.activeTab] || [];
-                const boss = list.find(b => b.id === id);
+                var list = appData.bosses[appData.activeTab] || [];
+                var boss = list.find(function(b) { return b.id === id; });
                 if(boss) {
-                    const d = new Date();
+                    var d = new Date();
                     boss.status = status;
                     boss.time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
                     saveAndRender();
@@ -205,8 +236,21 @@
                 }
             };
 
+            // 순서 변경 함수 (⬆️ 위로 / ⬇️ 아래로)
+            window.moveBoss = function(index, direction) {
+                var list = appData.bosses[appData.activeTab] || [];
+                var targetIndex = index + direction;
+                if (targetIndex < 0 || targetIndex >= list.length) return;
+                
+                var temp = list[index];
+                list[index] = list[targetIndex];
+                list[targetIndex] = temp;
+                
+                saveAndRender();
+            };
+
             window.deleteBoss = function(id) {
-                appData.bosses[appData.activeTab] = (appData.bosses[appData.activeTab] || []).filter(b => b.id !== id);
+                appData.bosses[appData.activeTab] = (appData.bosses[appData.activeTab] || []).filter(function(b) { return b.id !== id; });
                 saveAndRender();
             };
 
@@ -217,12 +261,11 @@
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ sheetName, bossName, status, time })
+                        body: JSON.stringify({ sheetName: sheetName, bossName: bossName, status: status, time: time })
                     }).catch(function(){});
                 } catch(e){}
             }
 
-            // 헤더 버튼
             document.getElementById('btnSettings').onclick = function() {
                 document.getElementById('gasUrlInput').value = gasUrl;
                 document.getElementById('settingsModal').classList.remove('hidden');
@@ -232,24 +275,22 @@
             };
             document.getElementById('btnSaveSettings').onclick = function() {
                 gasUrl = document.getElementById('gasUrlInput').value.trim();
-                localStorage.setItem('gasUrl', gasUrl);
-                alert('설정 저장 완료');
+                try { localStorage.setItem('gasUrl', gasUrl); } catch(e){}
+                alert('설정이 저장되었습니다.');
                 document.getElementById('settingsModal').classList.add('hidden');
             };
 
-            // 초기화 버튼
             document.getElementById('btnResetTab').onclick = function() {
-                if(confirm('[' + appData.activeTab + ' 타임]을 초기화하시겠습니까?')) {
-                    (appData.bosses[appData.activeTab] || []).forEach(b => { b.status = '대기'; b.time = '-'; });
+                if(confirm('[' + appData.activeTab + ' 타임]의 모든 보스를 초기화하시겠습니까?')) {
+                    (appData.bosses[appData.activeTab] || []).forEach(function(b) { b.status = '대기'; b.time = '-'; });
                     saveAndRender();
                     sendToSheet(appData.activeTab, 'ALL', 'RESET', 'NOW');
                 }
             };
 
-            // 시간대 추가/삭제
             document.getElementById('btnAddSlot').onclick = function() {
-                const slot = prompt('시간대 입력 (예: 02:00):');
-                if(slot && !appData.timeSlots.includes(slot)) {
+                var slot = prompt('추가할 시간대 입력 (예: 02:00):');
+                if(slot && appData.timeSlots.indexOf(slot) === -1) {
                     appData.timeSlots.push(slot);
                     appData.timeSlots.sort();
                     appData.activeTab = slot;
@@ -258,31 +299,34 @@
                 }
             };
             document.getElementById('btnDeleteSlot').onclick = function() {
-                if(appData.timeSlots.length <= 1) return alert('최소 1개는 유지해야 합니다.');
+                if(appData.timeSlots.length <= 1) {
+                    alert('최소 1개의 시간대는 유지되어야 합니다.');
+                    return;
+                }
                 if(confirm('[' + appData.activeTab + ' 타임]을 삭제하시겠습니까?')) {
-                    const target = appData.activeTab;
-                    appData.timeSlots = appData.timeSlots.filter(s => s !== target);
+                    var target = appData.activeTab;
+                    appData.timeSlots = appData.timeSlots.filter(function(s) { return s !== target; });
                     delete appData.bosses[target];
                     appData.activeTab = appData.timeSlots[0];
                     saveAndRender();
                 }
             };
 
-            // 보스 등록
             document.getElementById('btnAddBoss').onclick = function() {
-                const name = document.getElementById('newBossName').value.trim();
-                const type = document.getElementById('newBossType').value;
-                if(!name) return alert('보스 이름을 입력하세요.');
+                var nameEl = document.getElementById('newBossName');
+                var typeEl = document.getElementById('newBossType');
+                var name = nameEl.value.trim();
+                if(!name) { alert('보스 이름을 입력해주세요.'); return; }
                 
                 if(!appData.bosses[appData.activeTab]) appData.bosses[appData.activeTab] = [];
                 appData.bosses[appData.activeTab].push({
                     id: Date.now(),
                     name: name,
-                    type: type,
+                    type: typeEl.value,
                     status: '대기',
                     time: '-'
                 });
-                document.getElementById('newBossName').value = '';
+                nameEl.value = '';
                 saveAndRender();
             };
 
