@@ -47,7 +47,6 @@
         .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
         .modal.hidden { display: none !important; }
         .modal-content { background: #1f2937; border: 1px solid #374151; border-radius: 10px; width: 90%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
-        
         .action-btns { display: flex; gap: 4px; align-items: center; }
     </style>
 </head>
@@ -138,9 +137,7 @@
                         appData = parsed;
                     }
                 }
-            } catch(e) {
-                appData = defaultData;
-            }
+            } catch(e) {}
 
             var gasUrl = '';
             try { gasUrl = localStorage.getItem('gasUrl') || ''; } catch(e){}
@@ -192,7 +189,6 @@
                         ? '<span class="badge badge-fixed">고정</span>' 
                         : '<span class="badge badge-random">확률</span>';
 
-                    // 고정 보스일 경우 젠/멍 버튼 안 뜨고 '처치/확인' 토글만 가능
                     var statusControls = '';
                     if (boss.type === 'fixed') {
                         statusControls = `
@@ -236,16 +232,13 @@
                 }
             };
 
-            // 순서 변경 함수 (⬆️ 위로 / ⬇️ 아래로)
             window.moveBoss = function(index, direction) {
                 var list = appData.bosses[appData.activeTab] || [];
                 var targetIndex = index + direction;
                 if (targetIndex < 0 || targetIndex >= list.length) return;
-                
                 var temp = list[index];
                 list[index] = list[targetIndex];
                 list[targetIndex] = temp;
-                
                 saveAndRender();
             };
 
@@ -266,6 +259,34 @@
                 } catch(e){}
             }
 
+            // 스프레드시트에서 최신 데이터 불러오기 (GET)
+            function loadFromSheet() {
+                if(!gasUrl) return;
+                fetch(gasUrl)
+                    .then(function(response) { return response.json(); })
+                    .then(function(rows) {
+                        if(!rows || rows.length <= 1) return;
+                        // 스프레드시트에 기록된 마지막 상태들을 반영
+                        for(var i = 1; i < rows.length; i++) {
+                            var r = rows[i];
+                            var sName = r[0];
+                            var bName = r[1];
+                            var status = r[2];
+                            var time = r[3];
+                            
+                            if(appData.bosses[sName]) {
+                                var target = appData.bosses[sName].find(function(b) { return b.name === bName; });
+                                if(target) {
+                                    target.status = status;
+                                    target.time = time;
+                                }
+                            }
+                        }
+                        renderBossTable();
+                    })
+                    .catch(function(err) { console.error('Load Error:', err); });
+            }
+
             document.getElementById('btnSettings').onclick = function() {
                 document.getElementById('gasUrlInput').value = gasUrl;
                 document.getElementById('settingsModal').classList.remove('hidden');
@@ -278,6 +299,7 @@
                 try { localStorage.setItem('gasUrl', gasUrl); } catch(e){}
                 alert('설정이 저장되었습니다.');
                 document.getElementById('settingsModal').classList.add('hidden');
+                loadFromSheet();
             };
 
             document.getElementById('btnResetTab').onclick = function() {
@@ -330,7 +352,11 @@
                 saveAndRender();
             };
 
+            // 초기 실행 및 스프레드시트 데이터 불러오기
             saveAndRender();
+            if(gasUrl) {
+                loadFromSheet();
+            }
         });
     </script>
 </body>
