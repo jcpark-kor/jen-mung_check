@@ -4,62 +4,299 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MMORPG 보스 젠/멍 타이머</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: #111827; color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+        header { background-color: #1f2937; border-bottom: 1px solid #374151; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .header-title { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: bold; }
+        .header-btns { display: flex; gap: 10px; }
+        button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 12px; font-size: 0.875rem; font-weight: 600; transition: background 0.2s; }
+        .btn-gray { background-color: #374151; color: #fff; }
+        .btn-gray:hover { background-color: #4b5563; }
+        .btn-red { background-color: #dc2626; color: #fff; }
+        .btn-red:hover { background-color: #b91c1c; }
+        .btn-blue { background-color: #2563eb; color: #fff; }
+        .btn-blue:hover { background-color: #1d4ed8; }
+        .btn-green { background-color: #16a34a; color: #fff; }
+        .btn-green:hover { background-color: #15803d; }
+        
+        main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .tabs-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; padding-bottom: 10px; gap: 10px; flex-wrap: wrap; }
+        .tabs { display: flex; gap: 8px; overflow-x: auto; }
+        .tab-btn { background: transparent; color: #9ca3af; padding: 8px 16px; border-bottom: 2px solid transparent; border-radius: 0; }
+        .tab-btn.active { color: #3b82f6; border-bottom: 2px solid #3b82f6; font-weight: bold; }
+        
+        .controls-bar { background-color: #1f2937; padding: 16px; border-radius: 8px; border: 1px solid #374151; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+        .input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+        .input-group label { font-size: 0.75rem; color: #9ca3af; }
+        input, select { background-color: #111827; border: 1px solid #374151; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 0.875rem; outline: none; width: 100%; }
+        input:focus, select:focus { border-color: #3b82f6; }
+
+        .table-container { background-color: #1f2937; border-radius: 8px; border: 1px solid #374151; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: #111827; color: #9ca3af; font-size: 0.75rem; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid #374151; }
+        td { padding: 12px 16px; border-bottom: 1px solid #374151; font-size: 0.875rem; }
+        tr:hover { background-color: rgba(255,255,255,0.02); }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; display: inline-block; }
+        .badge-fixed { background-color: #1e3a8a; color: #93c5fd; }
+        .badge-random { background-color: #581c87; color: #d8b4fe; }
+        .badge-zen { background-color: #14532d; color: #86efac; }
+        .badge-mong { background-color: #7f1d1d; color: #fca5a5; }
+        .badge-wait { background-color: #374151; color: #d1d5db; }
+
+        /* 모달 팝업 스타일 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-overlay.hidden { display: none; }
+        .modal-box { background-color: #1f2937; border: 1px solid #374151; border-radius: 12px; width: 100%; max-width: 500px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; padding-bottom: 12px; font-weight: bold; font-size: 1.1rem; }
+        .close-btn { background: none; color: #9ca3af; font-size: 1.5rem; padding: 0; }
+        .close-btn:hover { color: #fff; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
+<body>
 
-    <!-- 상단 헤더 -->
-    <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-md">
-        <div class="flex items-center space-x-3">
-            <span class="text-2xl">⚔️</span>
-            <h1 class="text-xl font-bold tracking-wider">MMORPG 보스 젠/멍 타이머</h1>
+    <header>
+        <div class="header-title">
+            <span>⚔️</span>
+            <h1>MMORPG 보스 젠/멍 타이머</h1>
         </div>
-        <div class="flex items-center space-x-3">
-            <button id="btnSettings" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-sm flex items-center space-x-1 transition cursor-pointer">
-                <span>⚙️ 설정 & 가이드</span>
-            </button>
-            <button id="btnResetTab" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
-                🔄 현재 시간대 초기화
-            </button>
+        <div class="header-btns">
+            <button id="btnSettings" class="btn-gray">⚙️ 설정 & 가이드</button>
+            <button id="btnResetTab" class="btn-red">🔄 현재 시간대 초기화</button>
         </div>
     </header>
 
-    <!-- 메인 컨테이너 -->
-    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col space-y-6">
-
-        <!-- 시간대 탭 네비게이션 및 삭제 버튼 -->
-        <div class="flex flex-wrap items-center justify-between border-b border-gray-700 pb-2 gap-2">
-            <div id="timeTabs" class="flex space-x-4 overflow-x-auto min-w-max">
-                <!-- 동적 탭 -->
-            </div>
-            <div class="flex items-center space-x-2">
-                <button id="btnAddSlot" class="bg-blue-600 hover:bg-blue-700 text-xs px-3 py-1.5 rounded-md font-semibold transition cursor-pointer">
-                    + 시간대 추가
-                </button>
-                <button id="btnDeleteSlot" class="bg-gray-700 hover:bg-red-600 text-xs px-3 py-1.5 rounded-md font-semibold transition text-gray-300 hover:text-white cursor-pointer">
-                    🗑️ 현재 시간대 삭제
-                </button>
+    <main>
+        <!-- 시간대 탭 및 추가/삭제 -->
+        <div class="tabs-container">
+            <div id="timeTabs" class="tabs"></div>
+            <div style="display: flex; gap: 8px;">
+                <button id="btnAddSlot" class="btn-blue" style="font-size: 0.75rem; padding: 6px 10px;">+ 시간대 추가</button>
+                <button id="btnDeleteSlot" class="btn-gray" style="font-size: 0.75rem; padding: 6px 10px;">🗑️ 현재 시간대 삭제</button>
             </div>
         </div>
 
-        <!-- 보스 추가 입력 영역 -->
-        <div class="bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-wrap gap-3 items-end">
-            <div class="flex-1 min-w-[150px]">
-                <label class="block text-xs text-gray-400 mb-1">보스 이름</label>
-                <input type="text" id="newBossName" placeholder="예: 바포메트" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+        <!-- 보스 추가 바 -->
+        <div class="controls-bar">
+            <div class="input-group">
+                <label>보스 이름</label>
+                <input type="text" id="newBossName" placeholder="예: 바포메트">
             </div>
-            <div class="w-32">
-                <label class="block text-xs text-gray-400 mb-1">유형</label>
-                <select id="newBossType" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
+            <div class="input-group" style="max-width: 120px;">
+                <label>유형</label>
+                <select id="newBossType">
                     <option value="fixed">고정 보스</option>
                     <option value="random">확률 보스</option>
                 </select>
             </div>
-            <button id="btnAddBoss" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-sm font-semibold transition cursor-pointer">
-                보스 등록
-            </button>
+            <button id="btnAddBoss" class="btn-green">보스 등록</button>
         </div>
+
+        <!-- 보스 테이블 -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>유형</th>
+                        <th>보스 이름</th>
+                        <th>상태 (젠/멍)</th>
+                        <th>마지막 변경 시간</th>
+                        <th>관리</th>
+                    </tr>
+                </thead>
+                <tbody id="bossTableBody">
+                    <!-- 동적 생성 -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- 설정 모달 -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span>⚙️ 설정 및 구글 스프레드시트 연동</span>
+                <button id="btnCloseModalX" class="close-btn">&times;</button>
+            </div>
+            <div class="input-group">
+                <label>구글 앱 스크립트 웹 앱 URL</label>
+                <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+                <span style="font-size: 0.7rem; color: #9ca3af; margin-top: 4px;">URL을 등록하면 젠/멍 클릭 시 스프레드시트에 자동 기록됩니다.</span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+                <button id="btnCloseModalBtn" class="btn-gray">취소</button>
+                <button id="btnSaveSettings" class="btn-blue">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 즉시 실행 함수로 스코프 충돌 원천 방지
+        (function() {
+            let defaultData = {
+                timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+                activeTab: "00:00",
+                bosses: {
+                    "00:00": [
+                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "대기", time: "-" },
+                        { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-" }
+                    ]
+                }
+            };
+
+            let appData;
+            try {
+                appData = JSON.parse(localStorage.getItem('bossAppData')) || defaultData;
+            } catch(e) {
+                appData = defaultData;
+            }
+
+            let gasUrl = localStorage.getItem('gasUrl') || '';
+
+            function saveAndRender() {
+                localStorage.setItem('bossAppData', JSON.stringify(appData));
+                renderTabs();
+                renderBossTable();
+            }
+
+            function renderTabs() {
+                const container = document.getElementById('timeTabs');
+                container.innerHTML = '';
+                appData.timeSlots.forEach(slot => {
+                    const btn = document.createElement('button');
+                    btn.className = `tab-btn ${slot === appData.activeTab ? 'active' : ''}`;
+                    btn.innerText = `${slot} 타임`;
+                    btn.onclick = function() {
+                        appData.activeTab = slot;
+                        if (!appData.bosses[slot]) appData.bosses[slot] = [];
+                        saveAndRender();
+                    };
+                    container.appendChild(btn);
+                });
+            }
+
+            function renderBossTable() {
+                const tbody = document.getElementById('bossTableBody');
+                tbody.innerHTML = '';
+                const currentBosses = appData.bosses[appData.activeTab] || [];
+
+                if (currentBosses.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #6b7280; padding: 30px;">등록된 보스가 없습니다.</td></tr>`;
+                    return;
+                }
+
+                currentBosses.forEach(boss => {
+                    const tr = document.createElement('tr');
+                    
+                    let badgeClass = 'badge-wait';
+                    let badgeText = '대기';
+                    if (boss.status === '젠') { badgeClass = 'badge-zen'; badgeText = '젠 (출현)'; }
+                    else if (boss.status === '멍') { badgeClass = 'badge-mong'; badgeText = '멍 (미출현)'; }
+
+                    const typeBadge = boss.type === 'fixed' ? '<span class="badge badge-fixed">고정</span>' : '<span class="badge badge-random">확률</span>';
+
+                    tr.innerHTML = `
+                        <td>${typeBadge}</td>
+                        <td style="font-weight: 600;">${boss.name}</td>
+                        <td>
+                            <button class="btn-green" style="padding: 4px 10px; font-size: 0.75rem; margin-right: 4px;" onclick="window.updateBossStatus(${boss.id}, '젠')">젠</button>
+                            <button class="btn-red" style="padding: 4px 10px; font-size: 0.75rem; margin-right: 8px;" onclick="window.updateBossStatus(${boss.id}, '멍')">멍</button>
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </td>
+                        <td style="color: #9ca3af; font-size: 0.75rem;">${boss.time}</td>
+                        <td>
+                            <button class="btn-gray" style="padding: 2px 6px; font-size: 0.7rem;" onclick="window.deleteBossItem(${boss.id})">삭제</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // 전역 함수로 등록하여 인라인 onclick에서 확실히 동작하도록 보장
+            window.updateBossStatus = function(id, status) {
+                const bosses = appData.bosses[appData.activeTab];
+                const boss = bosses.find(b => b.id === id);
+                if (boss) {
+                    const now = new Date();
+                    boss.status = status;
+                    boss.time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                    saveAndRender();
+                    sendToGoogleSheet(appData.activeTab, boss.name, status, boss.time);
+                }
+            };
+
+            window.deleteBossItem = function(id) {
+                appData.bosses[appData.activeTab] = appData.bosses[appData.activeTab].filter(b => b.id !== id);
+                saveAndRender();
+            };
+
+            function sendToGoogleSheet(sheetName, bossName, status, time) {
+                if (!gasUrl) return;
+                fetch(gasUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sheetName, bossName, status, time })
+                }).catch(err => console.error('Sheet Sync Error:', err));
+            }
+
+            // 이벤트 바인딩
+            window.onload = function() {
+                renderTabs();
+                renderBossTable();
+                document.getElementById('gasUrlInput').value = gasUrl;
+
+                const modal = document.getElementById('settingsModal');
+                
+                document.getElementById('btnSettings').onclick = function() {
+                    modal.classList.remove('hidden');
+                };
+
+                const closeModal = function() { modal.classList.add('hidden'); };
+                document.getElementById('btnCloseModalX').onclick = closeModal;
+                document.getElementById('btnCloseModalBtn').onclick = closeModal;
+
+                document.getElementById('btnSaveSettings').onclick = function() {
+                    gasUrl = document.getElementById('gasUrlInput').value.trim();
+                    localStorage.setItem('gasUrl', gasUrl);
+                    alert('설정이 저장되었습니다.');
+                    closeModal();
+                };
+
+                document.getElementById('btnAddBoss').onclick = function() {
+                    const nameInput = document.getElementById('newBossName');
+                    const typeInput = document.getElementById('newBossType');
+                    const name = nameInput.value.trim();
+                    if (!name) { alert('보스 이름을 입력해주세요.'); return; }
+
+                    if (!appData.bosses[appData.activeTab]) appData.bosses[appData.activeTab] = [];
+                    appData.bosses[appData.activeTab].push({
+                        id: Date.now(),
+                        name: name,
+                        type: typeInput.value,
+                        status: '대기',
+                        time: '-'
+                    });
+                    nameInput.value = '';
+                    saveAndRender();
+                };
+
+                document.getElementById('btnResetTab').onclick = function() {
+                    if (confirm(`[${appData.activeTab} 타임]의 모든 보스 상태를 초기화하시겠습니까?`)) {
+                        if (appData.bosses[appData.activeTab]) {
+                            appData.bosses[appData.activeTab].forEach(b => {
+                                b.status = '대기';
+                                b.time = '-';
+                            });
+                        }
+                        saveAndRender();
+                        sendToGoogleSheet(appData.activeTab, 'ALL', 'RESET', 'NOW');
+                    }
+                };
+
+                document.getElementById('btnAddSlot').onclick = function() {
+                    const newSlot = prompt('추가할 시간대를 입력하세요 (예: 02:00):');
+                    if (newSlot && !appData.timeSlots.includes(newSlot)) {
+                        appData.timeSlots.
