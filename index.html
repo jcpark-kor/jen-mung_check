@@ -44,9 +44,6 @@
         .badge-wait { background-color: #374151; color: #d1d5db; }
         .badge-done { background-color: #1e40af; color: #bfdbfe; }
 
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 99; }
-        .modal.hidden { display: none !important; }
-        .modal-content { background: #1f2937; border: 1px solid #374151; border-radius: 10px; width: 90%; max-width: 480px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
         .action-btns { display: flex; gap: 4px; align-items: center; }
     </style>
 </head>
@@ -102,6 +99,7 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', function() {
+            // 👇 본인의 구글 앱 스크립트 웹 앱 URL을 여기에 넣어주세요!
             var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzeAAcn7r_7u7G7Pbd_hfKaI8gIsvoGqq3NxeSU2FioyY5jHQN6CvvpKA2phQSrOzQI/exec"; 
 
             var defaultData = {
@@ -122,7 +120,6 @@
                 renderTabs();
                 renderBossTable();
                 
-                // 변경 사항이 생길 때마다 스프레드시트에 통째로 업로드
                 if(DEFAULT_GAS_URL) {
                     fetch(DEFAULT_GAS_URL, {
                         method: 'POST',
@@ -287,6 +284,7 @@
                 }
             };
 
+            // 보스 추가 이벤트 정상 작동하도록 수정 완료
             document.getElementById('btnAddBoss').onclick = function() {
                 var nameEl = document.getElementById('newBossName');
                 var typeEl = document.getElementById('newBossType');
@@ -302,11 +300,9 @@
                     time: '-'
                 });
                 nameEl.value = '';
-                saveAndPercent(); // 오타 방지용 함수 호출 수정
                 saveAndSync();
             };
 
-            // 처음 접속할 때 서버에서 데이터 불러오기 시도
             loadFromServer(false);
             renderTabs();
             renderBossTable();
