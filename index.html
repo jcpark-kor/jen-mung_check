@@ -55,7 +55,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <button type="button" id="btnSettings" class="btn-gray">⚙️ 설정</button>
+            <button type="button" id="btnSettings" class="btn-gray">⚙️ 연결 상태</button>
             <button type="button" id="btnResetTab" class="btn-red">🔄 현재 시간대 초기화</button>
         </div>
     </header>
@@ -100,23 +100,28 @@
         </div>
     </main>
 
-    <!-- 설정 모달 -->
+    <!-- 설정 모달 (확인용) -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content">
-            <h3 style="font-size:1.1rem; font-weight:bold;">⚙️ 구글 스프레드시트 URL 설정</h3>
+            <h3 style="font-size:1.1rem; font-weight:bold;">⚙️ 스프레드시트 연동 상태</h3>
+            <p style="font-size:0.85rem; color:#9ca3af;">코드로 자동 연동되어 있어 별도 입력이 필요 없습니다.</p>
             <div class="input-group">
-                <label>Apps Script Web App URL</label>
-                <input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec">
+                <label>현재 적용된 Web App URL</label>
+                <input type="text" id="gasUrlInput" readonly style="background:#111827; color:#9ca3af;">
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button type="button" id="btnCloseModal" class="btn-gray">닫기</button>
-                <button type="button" id="btnSaveSettings" class="btn-blue">저장</button>
+            <div style="display:flex; justify-content:flex-end;">
+                <button type="button" id="btnCloseModal" class="btn-blue">확인</button>
             </div>
         </div>
     </div>
 
     <script>
         window.addEventListener('DOMContentLoaded', function() {
+            // 👇 [중요] 여기에 본인의 구글 앱 스크립트 웹 앱 URL을 통째로 넣어주세요!
+            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxJrQ3vElbDS2mGK68N8ZoyYjd-tblYQzmITuP0kwSzGS8N0DKgiE54k6QZhH7obTYj/exec"; 
+
+            var gasUrl = DEFAULT_GAS_URL;
+
             var defaultData = {
                 timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
                 activeTab: "00:00",
@@ -138,9 +143,6 @@
                     }
                 }
             } catch(e) {}
-
-            var gasUrl = '';
-            try { gasUrl = localStorage.getItem('gasUrl') || ''; } catch(e){}
 
             function saveAndRender() {
                 try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
@@ -266,7 +268,6 @@
                     .then(function(response) { return response.json(); })
                     .then(function(rows) {
                         if(!rows || rows.length <= 1) return;
-                        // 스프레드시트에 기록된 마지막 상태들을 반영
                         for(var i = 1; i < rows.length; i++) {
                             var r = rows[i];
                             var sName = r[0];
@@ -293,13 +294,6 @@
             };
             document.getElementById('btnCloseModal').onclick = function() {
                 document.getElementById('settingsModal').classList.add('hidden');
-            };
-            document.getElementById('btnSaveSettings').onclick = function() {
-                gasUrl = document.getElementById('gasUrlInput').value.trim();
-                try { localStorage.setItem('gasUrl', gasUrl); } catch(e){}
-                alert('설정이 저장되었습니다.');
-                document.getElementById('settingsModal').classList.add('hidden');
-                loadFromSheet();
             };
 
             document.getElementById('btnResetTab').onclick = function() {
@@ -352,7 +346,7 @@
                 saveAndRender();
             };
 
-            // 초기 실행 및 스프레드시트 데이터 불러오기
+            // 초기 실행 및 스프레드시트 데이터 자동 불러오기
             saveAndRender();
             if(gasUrl) {
                 loadFromSheet();
