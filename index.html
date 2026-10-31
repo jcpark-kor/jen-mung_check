@@ -138,9 +138,17 @@
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
                         if(data && data.timeSlots && data.bosses) {
-                            // 현재 내 로컬 데이터와 서버 데이터가 다를 때만 갱신하여 깜빡임 방지
+                            // 현재 내가 보고 있는 activeTab 은 유지하면서 데이터만 갱신
+                            var currentActive = appData.activeTab;
+                            
                             if(JSON.stringify(appData) !== JSON.stringify(data)) {
                                 appData = data;
+                                // 서버에 가져온 데이터에 현재 보고 있던 탭이 여전히 존재하면 유지, 없으면 첫 번째 탭으로
+                                if(appData.timeSlots.indexOf(currentActive) !== -1) {
+                                    appData.activeTab = currentActive;
+                                } else {
+                                    appData.activeTab = appData.timeSlots[0];
+                                }
                                 renderTabs();
                                 renderBossTable();
                             }
@@ -248,7 +256,6 @@
                 saveAndSync();
             };
 
-            // 수동 동기화 버튼 (알림창 없이 조용히 동기화 수행)
             document.getElementById('btnSync').onclick = function() {
                 loadFromServer();
             };
@@ -308,7 +315,7 @@
             renderTabs();
             renderBossTable();
 
-            // ⏱️ 3초마다 자동으로 서버(스프레드시트) 최신 상태 동기화 실행
+            // ⏱️ 3초마다 자동으로 서버 동기화 (현재 보고 있는 탭 유지 기능 포함)
             setInterval(loadFromServer, 3000);
         });
     </script>
