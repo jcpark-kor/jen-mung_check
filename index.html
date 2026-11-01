@@ -213,7 +213,6 @@
                         `;
                     }
 
-                    // 띵케 컬럼 출력 및 버튼
                     var assignedText = boss.assigned ? `<span class="char-name">👤 ${boss.assigned}</span>` : `<span style="color:#6b7280; font-size:0.75rem;">미지정</span>`;
                     var assignedBtnText = boss.assigned ? '수정' : '입력';
 
@@ -240,7 +239,6 @@
                 });
             }
 
-            // 띵케(캐릭터명) 등록 및 수정 함수
             window.updateAssigned = function(id) {
                 var list = appData.bosses[appData.activeTab] || [];
                 var boss = list.find(function(b) { return b.id === id; });
@@ -284,9 +282,14 @@
                 loadFromServer();
             };
 
+            // 초기화 시 띵케(담당) 항목도 함께 빈값('')으로 초기화
             document.getElementById('btnResetTab').onclick = function() {
                 if(confirm('[' + appData.activeTab + ' 타임]의 모든 보스를 초기화하시겠습니까?')) {
-                    (appData.bosses[appData.activeTab] || []).forEach(function(b) { b.status = '대기'; b.time = '-'; });
+                    (appData.bosses[appData.activeTab] || []).forEach(function(b) { 
+                        b.status = '대기'; 
+                        b.time = '-'; 
+                        b.assigned = ''; 
+                    });
                     saveAndSync();
                 }
             };
