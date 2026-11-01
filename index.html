@@ -19,7 +19,7 @@
         .btn-green { background-color: #16a34a; color: #fff; }
         .btn-icon { padding: 4px 8px; font-size: 0.75rem; background-color: #374151; color: #fff; }
         
-        main { flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        main { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
         
         .tabs-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; padding-bottom: 8px; gap: 10px; flex-wrap: wrap; }
         .tabs { display: flex; gap: 4px; overflow-x: auto; }
@@ -46,6 +46,7 @@
 
         .action-btns { display: flex; gap: 4px; align-items: center; }
         .sync-status { font-size: 0.75rem; color: #10b981; display: flex; align-items: center; gap: 4px; }
+        .char-name { font-weight: 600; color: #f59e0b; margin-right: 6px; }
     </style>
 </head>
 <body>
@@ -53,7 +54,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <span class="sync-status">🟢 실시간 동기화 중 (10초)</span>
+            <span class="sync-status">🟢 실시간 동기화 중 (3초)</span>
             <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
             <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
         </div>
@@ -91,6 +92,7 @@
                         <th>보스 이름</th>
                         <th>상태</th>
                         <th>시간</th>
+                        <th>띵케 (담당)</th>
                         <th>순서 / 삭제</th>
                     </tr>
                 </thead>
@@ -109,8 +111,8 @@
                 activeTab: "00:00",
                 bosses: {
                     "00:00": [
-                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "확인", time: "-" },
-                        { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-" }
+                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "확인", time: "-", assigned: "" },
+                        { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-", assigned: "" }
                     ]
                 }
             };
@@ -139,7 +141,6 @@
                     .then(function(data) {
                         if(data && data.timeSlots && data.bosses) {
                             var currentActive = appData.activeTab;
-                            
                             if(JSON.stringify(appData) !== JSON.stringify(data)) {
                                 appData = data;
                                 if(appData.timeSlots.indexOf(currentActive) !== -1) {
@@ -181,7 +182,7 @@
                 var list = appData.bosses[appData.activeTab] || [];
 
                 if(list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#6b7280; padding:20px;">등록된 보스가 없습니다.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:20px;">등록된 보스가 없습니다.</td></tr>';
                     return;
                 }
 
@@ -204,7 +205,6 @@
                             <span class="badge ${bClass}">${bText}</span>
                         `;
                     } else {
-                        // 확률 보스에 '처치 완료' 버튼 추가
                         statusControls = `
                             <button type="button" class="btn-green" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '젠')">젠</button>
                             <button type="button" class="btn-red" style="padding:4px 8px; font-size:0.75rem;" onclick="window.updateStatus(${boss.id}, '멍')">멍</button>
@@ -213,11 +213,21 @@
                         `;
                     }
 
+                    // 띵케 컬럼 출력 및 버튼
+                    var assignedText = boss.assigned ? `<span class="char-name">👤 ${boss.assigned}</span>` : `<span style="color:#6b7280; font-size:0.75rem;">미지정</span>`;
+                    var assignedBtnText = boss.assigned ? '수정' : '입력';
+
                     tr.innerHTML = `
                         <td>${typeBadge}</td>
                         <td style="font-weight:bold;">${boss.name}</td>
                         <td>${statusControls}</td>
                         <td style="color:#9ca3af; font-size:0.75rem;">${boss.time}</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                ${assignedText}
+                                <button type="button" class="btn-gray" style="padding:2px 6px; font-size:0.7rem;" onclick="window.updateAssigned(${boss.id})">${assignedBtnText}</button>
+                            </div>
+                        </td>
                         <td>
                             <div class="action-btns">
                                 <button type="button" class="btn-icon" onclick="window.moveBoss(${index}, -1)">⬆️</button>
@@ -229,6 +239,20 @@
                     tbody.appendChild(tr);
                 });
             }
+
+            // 띵케(캐릭터명) 등록 및 수정 함수
+            window.updateAssigned = function(id) {
+                var list = appData.bosses[appData.activeTab] || [];
+                var boss = list.find(function(b) { return b.id === id; });
+                if(boss) {
+                    var current = boss.assigned || '';
+                    var inputName = prompt('띵케 (본인의 케릭명)을 입력하세요:', current);
+                    if(inputName !== null) {
+                        boss.assigned = inputName.trim();
+                        saveAndSync();
+                    }
+                }
+            };
 
             window.updateStatus = function(id, status) {
                 var list = appData.bosses[appData.activeTab] || [];
@@ -304,7 +328,8 @@
                     name: name,
                     type: typeEl.value,
                     status: '대기',
-                    time: '-'
+                    time: '-',
+                    assigned: ''
                 });
                 nameEl.value = '';
                 saveAndSync();
@@ -314,7 +339,7 @@
             renderTabs();
             renderBossTable();
 
-            setInterval(loadFromServer, 10000);
+            setInterval(loadFromServer, 3000);
         });
     </script>
 </body>
