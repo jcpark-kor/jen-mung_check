@@ -54,7 +54,7 @@
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <span class="sync-status">🟢 실시간 동기화 중 (10초)</span>
+            <span class="sync-status">🟢 실시간 동기화 중 (3초)</span>
             <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
             <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
         </div>
@@ -103,7 +103,6 @@
 
     <script>
         window.addEventListener('DOMContentLoaded', function() {
-            // 👇 본인의 구글 앱 스크립트 웹 앱 URL을 여기에 넣어주세요!
             var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzeAAcn7r_7u7G7Pbd_hfKaI8gIsvoGqq3NxeSU2FioyY5jHQN6CvvpKA2phQSrOzQI/exec"; 
 
             var defaultData = {
@@ -118,6 +117,7 @@
             };
 
             var appData = defaultData;
+            var isLocalUpdating = false; // 내가 조작 중일 때 동기화 충돌 방지 락(Lock)
 
             function saveAndSync() {
                 try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
@@ -125,21 +125,24 @@
                 renderBossTable();
                 
                 if(DEFAULT_GAS_URL) {
+                    isLocalUpdating = true;
                     fetch(DEFAULT_GAS_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(appData)
-                    }).catch(function(err){ console.error(err); });
+                    }).catch(function(err){}).finally(function() {
+                        setTimeout(function() { isLocalUpdating = false; }, 1000); // 1초 동안은 서버 덮어쓰기 방지
+                    });
                 }
             }
 
             function loadFromServer() {
-                if(!DEFAULT_GAS_URL) return;
+                if(!DEFAULT_GAS_URL || isLocalUpdating) return; // 내가 방금 클릭했으면 서버 로드 스킵
                 fetch(DEFAULT_GAS_URL)
                     .then(function(res) { return res.json(); })
                     .then(function(data) {
-                        if(data && data.timeSlots && data.bosses) {
+                        if(data && data.timeSlots && data.bosses && !isLocalUpdating) {
                             var currentActive = appData.activeTab;
                             if(JSON.stringify(appData) !== JSON.stringify(data)) {
                                 appData = data;
@@ -282,7 +285,6 @@
                 loadFromServer();
             };
 
-            // 초기화 시 띵케(담당) 항목도 함께 빈값('')으로 초기화
             document.getElementById('btnResetTab').onclick = function() {
                 if(confirm('[' + appData.activeTab + ' 타임]의 모든 보스를 초기화하시겠습니까?')) {
                     (appData.bosses[appData.activeTab] || []).forEach(function(b) { 
@@ -342,7 +344,7 @@
             renderTabs();
             renderBossTable();
 
-            setInterval(loadFromServer, 10000);
+            setInterval(loadFromServer, 3000);
         });
     </script>
 </body>
