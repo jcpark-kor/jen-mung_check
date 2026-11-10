@@ -133,14 +133,18 @@
         };
 
         var appData = defaultData;
+        var isLoaded = false;
 
         window.addEventListener('DOMContentLoaded', function() {
             
             function saveData() {
-                timerRef.set(appData);
+                timerRef.set(appData).catch(function(error) {
+                    console.error("저장 실패:", error);
+                    alert("데이터 저장 중 오류가 발생했습니다. 파이어베이스 규칙(Rules)을 확인해주세요.");
+                });
             }
 
-            // 실시간 웹소켓 수신 (다른 사람이 누르면 즉시 화면 갱신)
+            // 실시간 웹소켓 수신
             timerRef.on('value', function(snapshot) {
                 var data = snapshot.val();
                 if (data && data.timeSlots && data.bosses) {
@@ -151,10 +155,13 @@
                     } else {
                         appData.activeTab = appData.timeSlots[0];
                     }
+                    isLoaded = true;
                     renderTabs();
                     renderBossTable();
-                } else {
+                } else if (!isLoaded) {
+                    // 최초 서버가 비어있을 때만 기본 데이터 업로드
                     saveData();
+                    isLoaded = true;
                 }
             });
 
@@ -293,12 +300,17 @@
 
             document.getElementById('btnAddSlot').onclick = function() {
                 var slot = prompt('추가할 시간대 입력 (예: 02:00):');
-                if(slot && appData.timeSlots.indexOf(slot) === -1) {
-                    appData.timeSlots.push(slot);
-                    appData.timeSlots.sort();
-                    appData.activeTab = slot;
-                    if(!appData.bosses[slot]) appData.bosses[slot] = [];
-                    saveData();
+                if(slot) {
+                    slot = slot.trim();
+                    if(appData.timeSlots.indexOf(slot) === -1) {
+                        appData.timeSlots.push(slot);
+                        appData.timeSlots.sort();
+                        appData.activeTab = slot;
+                        if(!appData.bosses[slot]) appData.bosses[slot] = [];
+                        saveData();
+                    } else {
+                        alert('이미 존재하는 시간대입니다.');
+                    }
                 }
             };
 
@@ -334,9 +346,6 @@
                 nameEl.value = '';
                 saveData();
             };
-
-            renderTabs();
-            renderBossTable();
         });
     </script>
 </body>
