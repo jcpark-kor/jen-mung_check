@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MMORPG 보스 젠/멍 타이머</title>
+    <title>MMORPG 보스 젠/멍 타이머 (실시간 웹소켓)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: #111827; color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
@@ -48,15 +48,18 @@
         .sync-status { font-size: 0.75rem; color: #10b981; display: flex; align-items: center; gap: 4px; }
         .char-name { font-weight: 600; color: #f59e0b; margin-right: 6px; }
     </style>
+
+    <!-- 👇 이 줄들이 파이어베이스 브라우저용 SDK를 웹페이지에 불러오는 코드입니다 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
     <header>
         <div class="header-title">⚔️ MMORPG 보스 타이머</div>
         <div class="header-btns">
-            <span class="sync-status">🟢 실시간 동기화 중 (3초)</span>
-            <button type="button" id="btnSync" class="btn-blue" style="font-size:0.75rem; padding:6px 10px;">수동 동기화</button>
-            <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 초기화</button>
+            <span class="sync-status">⚡ 실시간 웹소켓 연결됨</span>
+            <button type="button" id="btnResetTab" class="btn-red" style="font-size:0.75rem; padding:6px 10px;">🔄 현재 시간대 초기화</button>
         </div>
     </header>
 
@@ -102,62 +105,58 @@
     </main>
 
     <script>
+        // 👇 [여기만 수정하세요] 파이어베이스 콘솔에서 복사한 본인의 설정값 붙여넣기
+        var firebaseConfig = {
+            apiKey: "AIzaSyDvg3hf_W8icGyI_g3FiKBAn75sF_cD1Wc",
+            authDomain: "jenmungcheck.firebaseapp.com",
+            databaseURL: "https://jenmungcheck-default-rtdb.firebaseio.com",
+            projectId: "jenmungcheck",
+            storageBucket: "jenmungcheck.appspot.com",
+            messagingSenderId: "29622888285",
+            appId: "1:29622888285:web:f920ffbbd74dc2bedaeab4"
+        };
+
+        // Firebase 초기화 및 웹소켓 연결
+        firebase.initializeApp(firebaseConfig);
+        var db = firebase.database();
+        var timerRef = db.ref('bossTimerData');
+
+        var defaultData = {
+            timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            activeTab: "00:00",
+            bosses: {
+                "00:00": [
+                    { id: 1, name: "고정 보스 예시", type: "fixed", status: "확인", time: "-", assigned: "" },
+                    { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-", assigned: "" }
+                ]
+            }
+        };
+
+        var appData = defaultData;
+
         window.addEventListener('DOMContentLoaded', function() {
-            var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbzeAAcn7r_7u7G7Pbd_hfKaI8gIsvoGqq3NxeSU2FioyY5jHQN6CvvpKA2phQSrOzQI/exec"; 
-
-            var defaultData = {
-                timeSlots: ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
-                activeTab: "00:00",
-                bosses: {
-                    "00:00": [
-                        { id: 1, name: "고정 보스 예시", type: "fixed", status: "확인", time: "-", assigned: "" },
-                        { id: 2, name: "확률 보스 예시", type: "random", status: "대기", time: "-", assigned: "" }
-                    ]
-                }
-            };
-
-            var appData = defaultData;
-            var isLocalUpdating = false; // 내가 조작 중일 때 동기화 충돌 방지 락(Lock)
-
-            function saveAndSync() {
-                try { localStorage.setItem('bossAppData', JSON.stringify(appData)); } catch(e){}
-                renderTabs();
-                renderBossTable();
-                
-                if(DEFAULT_GAS_URL) {
-                    isLocalUpdating = true;
-                    fetch(DEFAULT_GAS_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(appData)
-                    }).catch(function(err){}).finally(function() {
-                        setTimeout(function() { isLocalUpdating = false; }, 1000); // 1초 동안은 서버 덮어쓰기 방지
-                    });
-                }
+            
+            function saveData() {
+                timerRef.set(appData);
             }
 
-            function loadFromServer() {
-                if(!DEFAULT_GAS_URL || isLocalUpdating) return; // 내가 방금 클릭했으면 서버 로드 스킵
-                fetch(DEFAULT_GAS_URL)
-                    .then(function(res) { return res.json(); })
-                    .then(function(data) {
-                        if(data && data.timeSlots && data.bosses && !isLocalUpdating) {
-                            var currentActive = appData.activeTab;
-                            if(JSON.stringify(appData) !== JSON.stringify(data)) {
-                                appData = data;
-                                if(appData.timeSlots.indexOf(currentActive) !== -1) {
-                                    appData.activeTab = currentActive;
-                                } else {
-                                    appData.activeTab = appData.timeSlots[0];
-                                }
-                                renderTabs();
-                                renderBossTable();
-                            }
-                        }
-                    })
-                    .catch(function(err){});
-            }
+            // 실시간 웹소켓 수신 (다른 사람이 누르면 0.05초 만에 화면 갱신)
+            timerRef.on('value', function(snapshot) {
+                var data = snapshot.val();
+                if (data && data.timeSlots && data.bosses) {
+                    var currentActive = appData.activeTab;
+                    appData = data;
+                    if(appData.timeSlots.indexOf(currentActive) !== -1) {
+                        appData.activeTab = currentActive;
+                    } else {
+                        appData.activeTab = appData.timeSlots[0];
+                    }
+                    renderTabs();
+                    renderBossTable();
+                } else {
+                    saveData();
+                }
+            });
 
             function renderTabs() {
                 var container = document.getElementById('timeTabs');
@@ -250,7 +249,7 @@
                     var inputName = prompt('띵케 (본인의 케릭명)을 입력하세요:', current);
                     if(inputName !== null) {
                         boss.assigned = inputName.trim();
-                        saveAndSync();
+                        saveData();
                     }
                 }
             };
@@ -262,7 +261,7 @@
                     var d = new Date();
                     boss.status = status;
                     boss.time = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
-                    saveAndSync();
+                    saveData();
                 }
             };
 
@@ -273,16 +272,12 @@
                 var temp = list[index];
                 list[index] = list[targetIndex];
                 list[targetIndex] = temp;
-                saveAndSync();
+                saveData();
             };
 
             window.deleteBoss = function(id) {
                 appData.bosses[appData.activeTab] = (appData.bosses[appData.activeTab] || []).filter(function(b) { return b.id !== id; });
-                saveAndSync();
-            };
-
-            document.getElementById('btnSync').onclick = function() {
-                loadFromServer();
+                saveData();
             };
 
             document.getElementById('btnResetTab').onclick = function() {
@@ -292,7 +287,7 @@
                         b.time = '-'; 
                         b.assigned = ''; 
                     });
-                    saveAndSync();
+                    saveData();
                 }
             };
 
@@ -303,7 +298,7 @@
                     appData.timeSlots.sort();
                     appData.activeTab = slot;
                     if(!appData.bosses[slot]) appData.bosses[slot] = [];
-                    saveAndSync();
+                    saveData();
                 }
             };
 
@@ -317,7 +312,7 @@
                     appData.timeSlots = appData.timeSlots.filter(function(s) { return s !== target; });
                     delete appData.bosses[target];
                     appData.activeTab = appData.timeSlots[0];
-                    saveAndSync();
+                    saveData();
                 }
             };
 
@@ -337,14 +332,11 @@
                     assigned: ''
                 });
                 nameEl.value = '';
-                saveAndSync();
+                saveData();
             };
 
-            loadFromServer();
             renderTabs();
             renderBossTable();
-
-            setInterval(loadFromServer, 3000);
         });
     </script>
 </body>
