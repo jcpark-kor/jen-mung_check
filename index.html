@@ -49,7 +49,7 @@
         .char-name { font-weight: 600; color: #f59e0b; margin-right: 6px; }
     </style>
 
-    <!-- 👇 이 줄들이 파이어베이스 브라우저용 SDK를 웹페이지에 불러오는 코드입니다 -->
+    <!-- Firebase SDK 모듈 로드 -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
@@ -105,7 +105,7 @@
     </main>
 
     <script>
-        // 👇 [여기만 수정하세요] 파이어베이스 콘솔에서 복사한 본인의 설정값 붙여넣기
+        // 👇 본인의 firebaseConfig 설정 정보를 입력하세요!
         var firebaseConfig = {
             apiKey: "AIzaSyDvg3hf_W8icGyI_g3FiKBAn75sF_cD1Wc",
             authDomain: "jenmungcheck.firebaseapp.com",
@@ -140,7 +140,7 @@
                 timerRef.set(appData);
             }
 
-            // 실시간 웹소켓 수신 (다른 사람이 누르면 0.05초 만에 화면 갱신)
+            // 실시간 웹소켓 수신 (다른 사람이 누르면 즉시 화면 갱신)
             timerRef.on('value', function(snapshot) {
                 var data = snapshot.val();
                 if (data && data.timeSlots && data.bosses) {
